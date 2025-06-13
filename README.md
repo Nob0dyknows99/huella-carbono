@@ -1,6 +1,6 @@
-# 🌱 Huella de Carbono – App Expo React Native
+# 🌱 Huella ecológica – App Expo React Native
 
-Aplicación para calcular y visualizar la huella de carbono. Desarrollada con **React Native** usando **Expo**.
+Aplicación para calcular y visualizar la huella ecológica. Desarrollada con **React Native** usando **Expo**.
 
 ---
 
