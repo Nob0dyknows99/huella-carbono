@@ -11,7 +11,7 @@ Aplicación para calcular y visualizar la huella ecológica. Desarrollada con **
 Abre tu terminal y ejecuta:
 
 ```bash
-git clone https://github.com/Nob0dyknows99/huella-carbono.git
+git clone https://github.com/Nob0dyknows99/huella-ecologica.git
 cd huella-carbono
 ```
 
