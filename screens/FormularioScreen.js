@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,9 @@ import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../context/ThemeContext';
 import CustomSelect from '../components/CustomSelect';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { calcularHuellaEcologica } from '../utils/calculadora';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import uuid from 'react-native-uuid';
 
 export default function FormularioScreen() {
   const { dark, toggleTheme } = useTheme();
@@ -23,9 +26,30 @@ export default function FormularioScreen() {
   const [kwhMes, setKwhMes] = useState('');
   const [gasKgMes, setGasKgMes] = useState('');
   const [dieta, setDieta] = useState('omnivora');
+  const [vivienda, setVivienda] = useState('casa_pequena');
+  const [recicla, setRecicla] = useState('recicla');
+  const [consumo, setConsumo] = useState('medio');
 
-  const handleCalcular = () => {
-    const datos = {
+  const guardarEnHistorial = async (resultado) => {
+    try {
+      const historialActual = await AsyncStorage.getItem('historial');
+      const historial = historialActual ? JSON.parse(historialActual) : [];
+
+      const nuevoRegistro = {
+        id: uuid.v4(),
+        fecha: new Date().toISOString(),
+        ...resultado,
+      };
+
+      const actualizado = [nuevoRegistro, ...historial];
+      await AsyncStorage.setItem('historial', JSON.stringify(actualizado));
+    } catch (error) {
+      console.error('Error guardando historial:', error);
+    }
+  };
+
+  const handleCalcular = async () => {
+    const datosEntrada = {
       transporte: {
         tipo: transporteTipo,
         kmSemanales: parseFloat(kmSemanales),
@@ -35,8 +59,14 @@ export default function FormularioScreen() {
         gasKgMes: parseFloat(gasKgMes),
       },
       dieta,
+      vivienda,
+      recicla,
+      consumo,
     };
-    navigation.navigate('Resultado', { datos });
+
+    const resultado = calcularHuellaEcologica(datosEntrada);
+    await guardarEnHistorial(resultado);
+    navigation.navigate('Resultado', { resultado });
   };
 
   const themeStyles = dark ? styles.dark : styles.light;
@@ -50,7 +80,7 @@ export default function FormularioScreen() {
       >
         <ScrollView contentContainerStyle={[styles.container, { flexGrow: 1 }]}>
           <View style={styles.header}>
-            <Text style={[styles.title, textColor]}>🌍 Tu Huella de Carbono</Text>
+            <Text style={[styles.title, textColor]}>🌍 Tu Huella Ecológica</Text>
             <TouchableOpacity style={styles.themeToggle} onPress={toggleTheme}>
               <Text style={styles.themeIcon}>{dark ? '☀️' : '🌙'}</Text>
             </TouchableOpacity>
@@ -105,7 +135,47 @@ export default function FormularioScreen() {
                 { label: 'Vegetariana', value: 'vegetariana' },
                 { label: 'Vegana', value: 'vegana' },
               ]}
-              style={{ marginTop: 20 }}
+            />
+
+            <CustomSelect
+              label="🏠 Tipo de vivienda"
+              selected={vivienda}
+              onSelect={setVivienda}
+              options={[
+                { label: 'Departamento', value: 'depto' },
+                { label: 'Casa pequeña', value: 'casa_pequena' },
+                { label: 'Casa grande', value: 'casa_grande' },
+              ]}
+            />
+
+            <CustomSelect
+              label="♻️ ¿Reciclas regularmente?"
+              selected={recicla}
+              onSelect={setRecicla}
+              options={[
+                { label: 'Sí', value: 'recicla' },
+                { label: 'No', value: 'noRecicla' },
+              ]}
+            />
+
+            <CustomSelect
+              label="🛍️ ¿Cuál describe mejor tus hábitos de consumo?"
+              selected={consumo}
+              onSelect={setConsumo}
+              options={[
+                {
+                  label: 'Compro pocas cosas, reutilizo y arreglo antes de reemplazar (bajo consumo)',
+                  value: 'bajo',
+                },
+                {
+                  label: 'Compro ropa o tecnología algunas veces al mes (consumo medio)',
+                  value: 'medio',
+                },
+                {
+                  label: 'Compro con frecuencia, me gusta renovar cosas seguido (alto consumo)',
+                  value: 'alto',
+                },
+              ]}
             />
           </View>
 
@@ -213,9 +283,6 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: 'center',
-  },
-  secondaryButton: {
-    backgroundColor: '#3498db',
   },
   buttonText: {
     color: '#fff',

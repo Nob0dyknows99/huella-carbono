@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -50,7 +50,7 @@ export default function HomeScreen() {
         />
 
         <Text style={[styles.title, textColor]}>
-          Calculadora de Huella de Carbono
+          Calculadora de Huella ecológica
         </Text>
         <Text style={[styles.subtitle, textColor]}>
           Mide tu impacto ambiental y toma decisiones más sostenibles.

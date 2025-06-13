@@ -1,18 +1,33 @@
-import { factoresChile } from '../data/factoresChile';
+import { factoresEcologicos } from '../data/factoresChile';
 
-export function calcularHuellaCarbono({ transporte, energia, dieta }) {
+export function calcularHuellaEcologica({ transporte, energia, dieta }) {
   const kmAnuales = transporte.kmSemanales * 52;
-  const emisionTransporte = kmAnuales * factoresChile.transporte[transporte.tipo];
-  const consumoEnergia = energia.kwhMes * 12 * factoresChile.energia.kwh;
-  const consumoGas = energia.gasKgMes * 12 * factoresChile.energia.gas_kg;
-  const dietaCO2 = factoresChile.alimentacion[dieta];
 
-  const total = (emisionTransporte + consumoEnergia + consumoGas + dietaCO2 * 1000) / 1000;
+  // Transporte
+  const huellaTransporte = kmAnuales * factoresEcologicos.transporte[transporte.tipo];
+
+  // Energía
+  const huellaElectricidad = energia.kwhMes * 12 * factoresEcologicos.energia.kwh;
+  const huellaGas = energia.gasKgMes * 12 * factoresEcologicos.energia.gas_kg;
+  const huellaEnergia = huellaElectricidad + huellaGas;
+
+  // Alimentación
+  const huellaAlimentacion = factoresEcologicos.alimentacion[dieta];
+
+  // Valores promedio adicionales
+  const huellaConsumoBienes = factoresEcologicos.consumoBienes;
+  const huellaResiduos = factoresEcologicos.residuos.promedio;
+  const huellaVivienda = factoresEcologicos.vivienda.casa_pequena; // puedes personalizar más adelante
+
+  const total = huellaTransporte + huellaEnergia + huellaAlimentacion + huellaConsumoBienes + huellaResiduos + huellaVivienda;
 
   return {
-    transporte: emisionTransporte / 1000,
-    energia: (consumoEnergia + consumoGas) / 1000,
-    alimentacion: dietaCO2,
+    transporte: huellaTransporte,
+    energia: huellaEnergia,
+    alimentacion: huellaAlimentacion,
+    consumo: huellaConsumoBienes,
+    residuos: huellaResiduos,
+    vivienda: huellaVivienda,
     total,
   };
 }

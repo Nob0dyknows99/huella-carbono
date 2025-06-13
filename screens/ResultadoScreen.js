@@ -1,19 +1,21 @@
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, Dimensions, ScrollView } from 'react-native';
+import { useEffect } from 'react';
+import { View, Text, StyleSheet, Dimensions, ScrollView, TouchableOpacity } from 'react-native';
 import { BarChart } from 'react-native-chart-kit';
 import { useRoute } from '@react-navigation/native';
 import { useTheme } from '../context/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import uuid from 'react-native-uuid';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 
 export default function ResultadoScreen() {
   const route = useRoute();
-  const { datos } = route.params || {};
+  const { resultado } = route.params || {};
   const { dark } = useTheme();
   const screenWidth = Dimensions.get('window').width;
+  const navigation = useNavigation();
 
-  if (!datos) {
+  if (!resultado) {
     return (
       <View style={styles.center}>
         <Text style={styles.errorText}>No hay datos para mostrar.</Text>
@@ -24,92 +26,96 @@ export default function ResultadoScreen() {
   const safeNumber = (val) => (typeof val === 'number' && !isNaN(val) ? val : 0);
   const safeToFixed = (val, digits = 2) => safeNumber(val).toFixed(digits);
 
-  const huellaTransporte = safeNumber(datos.transporte.kmSemanales) * 0.19 * 4;
-  const huellaEnergia = safeNumber(datos.energia.kwhMes) * 0.38 + safeNumber(datos.energia.gasKgMes) * 2.75;
-  const huellaDieta = {
-    omnivora: 3.3,
-    vegetariana: 1.7,
-    vegana: 1.5,
-  }[datos.dieta] || 3.3;
+  const huellaTransporte = safeNumber(resultado.transporte);
+  const huellaEnergia = safeNumber(resultado.energia);
+  const huellaDieta = safeNumber(resultado.alimentacion);
+  const huellaConsumo = safeNumber(resultado.consumo);
+  const huellaResiduos = safeNumber(resultado.residuos);
+  const huellaVivienda = safeNumber(resultado.vivienda);
+  const totalHuella = safeNumber(resultado.total);
 
-  const totalHuella = huellaTransporte + huellaEnergia + huellaDieta;
+  const biocapacidadPromedio = 1.6;
+  const promedioChile = 3.3;
+  const diferencia = totalHuella - biocapacidadPromedio;
 
   const chartData = {
-    labels: ['Transporte', 'Energía', 'Dieta'],
+    labels: ['🚗', '💡', '🥗', '🛍️', '♻️', '🏠'],
     datasets: [
       {
-        data: [huellaTransporte, huellaEnergia, huellaDieta],
+        data: [
+          huellaTransporte,
+          huellaEnergia,
+          huellaDieta,
+          huellaConsumo,
+          huellaResiduos,
+          huellaVivienda,
+        ],
       },
     ],
   };
 
-  useEffect(() => {
-    const guardarHistorial = async () => {
-      try {
-        const nuevoRegistro = {
-          id: uuid.v4(),
-          fecha: new Date().toISOString(),
-          transporte: huellaTransporte,
-          energia: huellaEnergia,
-          alimentacion: huellaDieta,
-          total: totalHuella,
-        };
-        const historialActual = await AsyncStorage.getItem('historial');
-        const historial = historialActual ? JSON.parse(historialActual) : [];
-        historial.push(nuevoRegistro);
-        await AsyncStorage.setItem('historial', JSON.stringify(historial));
-      } catch (error) {
-        console.error('Error guardando historial:', error);
-      }
-    };
-
-    guardarHistorial();
-  }, []);
-
   return (
     <SafeAreaView style={[styles.container, dark ? styles.dark : styles.light]}>
       <ScrollView style={styles.scroll}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginBottom: 10 }}>
+          <Text style={{ color: dark ? '#90caf9' : '#1565c0', fontSize: 16 }}>← Volver</Text>
+        </TouchableOpacity>
+
         <Text style={[styles.title, dark ? styles.textLight : styles.textDark]}>
-          🌱 Tu Huella de Carbono
+          🌱 Tu Huella Ecológica
         </Text>
 
         <Text style={[styles.total, dark ? styles.textLight : styles.textDark]}>
-          Total estimado: <Text style={styles.highlight}>{safeToFixed(totalHuella)} toneladas CO₂/año</Text>
+          Total estimado:{' '}
+          <Text style={styles.highlight}>{safeToFixed(totalHuella)} gha/año</Text>
+        </Text>
+
+        <Text style={[styles.subText, dark ? styles.textLight : styles.textDark]}>
+          🌍 Biocapacidad sostenible: <Text style={styles.bold}>1.6 gha/persona/año</Text>
+        </Text>
+
+        <Text style={[styles.subText, dark ? styles.textLight : styles.textDark]}>
+          🇨🇱 Promedio nacional en Chile: <Text style={styles.bold}>3.3 gha/persona/año</Text>
+        </Text>
+
+        <Text style={[styles.subText, dark ? styles.textLight : styles.textDark]}>
+          {diferencia > 0
+            ? `⚠️ Excedes el límite sostenible por ${safeToFixed(diferencia)} gha.`
+            : `✅ Estás dentro del límite sostenible.`}
         </Text>
 
         <View style={styles.summaryContainer}>
-          <Text style={styles.category}>🚗 Transporte: {safeToFixed(huellaTransporte)} t CO₂</Text>
-          <Text style={styles.category}>💡 Energía: {safeToFixed(huellaEnergia)} t CO₂</Text>
-          <Text style={styles.category}>🥗 Dieta: {safeToFixed(huellaDieta)} t CO₂</Text>
+          <Text style={styles.category}>🚗 Transporte: {safeToFixed(huellaTransporte)} gha</Text>
+          <Text style={styles.category}>💡 Energía: {safeToFixed(huellaEnergia)} gha</Text>
+          <Text style={styles.category}>🥗 Dieta: {safeToFixed(huellaDieta)} gha</Text>
+          <Text style={styles.category}>🛍️ Consumo: {safeToFixed(huellaConsumo)} gha</Text>
+          <Text style={styles.category}>♻️ Residuos: {safeToFixed(huellaResiduos)} gha</Text>
+          <Text style={styles.category}>🏠 Vivienda: {safeToFixed(huellaVivienda)} gha</Text>
         </View>
 
         <BarChart
           data={chartData}
           width={screenWidth - 32}
-          height={250}
-          yAxisSuffix=" t"
+          height={260}
+          yAxisSuffix=" gha"
           fromZero
           chartConfig={{
             backgroundColor: dark ? '#121212' : '#ffffff',
             backgroundGradientFrom: dark ? '#121212' : '#e0f2f1',
             backgroundGradientTo: dark ? '#121212' : '#b2dfdb',
             decimalPlaces: 2,
-            color: (opacity = 1) => dark ? `rgba(255, 255, 255, ${opacity})` : `rgba(0, 100, 0, ${opacity})`,
-            labelColor: (opacity = 1) => dark ? `rgba(255, 255, 255, ${opacity})` : `rgba(0, 0, 0, ${opacity})`,
+            color: (opacity = 1) => dark
+              ? `rgba(255, 255, 255, ${opacity})`
+              : `rgba(0, 100, 0, ${opacity})`,
+            labelColor: (opacity = 1) => dark
+              ? `rgba(255, 255, 255, ${opacity})`
+              : `rgba(0, 0, 0, ${opacity})`,
             propsForLabels: {
-              fontSize: 12,
+              fontSize: 11,
               fontWeight: '600',
-            },
-            propsForVerticalLabels: {
-              rotation: 0,
             },
             propsForBackgroundLines: {
               stroke: dark ? '#444' : '#ccc',
-            },
-            propsForDots: {
-              r: '4',
-              strokeWidth: '2',
-              stroke: dark ? '#ffffff' : '#2e7d32',
             },
           }}
           style={styles.chart}
@@ -120,41 +126,39 @@ export default function ResultadoScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scroll: {
-    padding: 16,
-  },
-  light: {
-    backgroundColor: '#ffffff',
-  },
-  dark: {
-    backgroundColor: '#121212',
-  },
-  textLight: {
-    color: '#ffffff',
-  },
-  textDark: {
-    color: '#000000',
-  },
+  container: { flex: 1 },
+  scroll: { padding: 16 },
+  light: { backgroundColor: '#ffffff' },
+  dark: { backgroundColor: '#121212' },
+  textLight: { color: '#ffffff' },
+  textDark: { color: '#000000' },
   title: {
     fontSize: 26,
     fontWeight: '700',
-    marginBottom: 50,
+    marginBottom: 30,
     textAlign: 'center',
   },
   total: {
     fontSize: 18,
     fontWeight: '500',
-    marginBottom: 30,
+    marginBottom: 8,
     textAlign: 'center',
+  },
+  subText: {
+    fontSize: 15,
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  bold: {
+    fontWeight: 'bold',
+    color: '#2e7d32',
   },
   highlight: {
     fontWeight: '700',
     color: '#2e7d32',
   },
   summaryContainer: {
+    marginTop: 20,
     marginBottom: 30,
     padding: 12,
     backgroundColor: '#f1f8e9',
@@ -166,6 +170,7 @@ const styles = StyleSheet.create({
   },
   chart: {
     borderRadius: 12,
+    marginTop: 10,
   },
   center: {
     flex: 1,

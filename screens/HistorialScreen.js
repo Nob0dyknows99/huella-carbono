@@ -1,28 +1,38 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, Button, Alert, StyleSheet } from 'react-native';
+import { useState, useCallback } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  Button,
+  Alert,
+  StyleSheet,
+} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { format } from 'date-fns';
 import { useTheme } from '../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 
 export default function HistorialScreen() {
   const [historial, setHistorial] = useState([]);
   const { dark, toggleTheme } = useTheme();
 
-  useEffect(() => {
-    const cargarHistorial = async () => {
-      try {
-        const data = await AsyncStorage.getItem('historial');
-        if (data) {
-          const parsed = JSON.parse(data);
-          if (Array.isArray(parsed)) setHistorial(parsed);
+  useFocusEffect(
+    useCallback(() => {
+      const cargarHistorial = async () => {
+        try {
+          const data = await AsyncStorage.getItem('historial');
+          if (data) {
+            const parsed = JSON.parse(data);
+            if (Array.isArray(parsed)) setHistorial(parsed);
+          }
+        } catch (error) {
+          console.error('Error al cargar historial:', error);
         }
-      } catch (error) {
-        console.error('Error al cargar historial:', error);
-      }
-    };
-    cargarHistorial();
-  }, []);
+      };
+      cargarHistorial();
+    }, [])
+  );
 
   const borrarHistorial = () => {
     Alert.alert(
@@ -42,8 +52,10 @@ export default function HistorialScreen() {
     );
   };
 
-  const safeNumber = (val) => (typeof val === 'number' && !isNaN(val) ? val : 0);
-  const safeToFixed = (val, digits = 2) => safeNumber(val).toFixed(digits);
+  const safeNumber = (val) =>
+    typeof val === 'number' && !isNaN(val) ? val : 0;
+  const safeToFixed = (val, digits = 2) =>
+    safeNumber(val).toFixed(digits);
 
   const themeStyles = dark ? styles.dark : styles.light;
   const textColor = dark ? styles.textDark : styles.textLight;
@@ -51,48 +63,69 @@ export default function HistorialScreen() {
 
   return (
     <SafeAreaView style={[styles.container, themeStyles]}>
-        <ScrollView contentContainerStyle={[styles.container, themeStyles]}>
+      <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.header}>
-            <Text style={[styles.title, textColor]}>📅 Historial de Evaluaciones</Text>
+          <Text style={[styles.title, textColor]}>
+            📅 Historial de Evaluaciones
+          </Text>
         </View>
 
         {historial.length === 0 ? (
-            <Text style={[styles.emptyText, textColor]}>No hay registros aún.</Text>
+          <Text style={[styles.emptyText, textColor]}>
+            No hay registros aún.
+          </Text>
         ) : (
-            historial.map((item, index) => (
-            <View key={index} style={[styles.card, cardStyle]}>
-                <Text style={[styles.cardDate, textColor]}>
+          historial.map((item, index) => (
+            <View key={item.id || index} style={[styles.card, cardStyle]}>
+              <Text style={[styles.cardDate, textColor]}>
                 📅 {format(new Date(item.fecha), 'dd/MM/yyyy HH:mm')}
-                </Text>
+              </Text>
 
-                <Text style={[styles.item, { color: '#3b82f6' }]}>
-                🚗 Transporte: {safeToFixed(item.transporte)} tCO₂e
-                </Text>
-                <Text style={[styles.item, { color: '#10b981' }]}>
-                🔌 Energía: {safeToFixed(item.energia)} tCO₂e
-                </Text>
-                <Text style={[styles.item, { color: '#f59e0b' }]}>
-                🥗 Dieta: {safeToFixed(item.alimentacion)} tCO₂e
-                </Text>
+              <Text style={[styles.item, { color: '#3b82f6' }]}>
+                🚗 Transporte: {safeToFixed(item.transporte)} gha
+              </Text>
+              <Text style={[styles.item, { color: '#10b981' }]}>
+                💡 Energía: {safeToFixed(item.energia)} gha
+              </Text>
+              <Text style={[styles.item, { color: '#f59e0b' }]}>
+                🥗 Alimentación: {safeToFixed(item.alimentacion)} gha
+              </Text>
+              <Text style={[styles.item, { color: '#8b5cf6' }]}>
+                🛍️ Consumo de bienes: {safeToFixed(item.consumo)} gha
+              </Text>
+              <Text style={[styles.item, { color: '#06b6d4' }]}>
+                ♻️ Residuos: {safeToFixed(item.residuos)} gha
+              </Text>
+              <Text style={[styles.item, { color: '#ef4444' }]}>
+                🏠 Vivienda: {safeToFixed(item.vivienda)} gha
+              </Text>
 
-                <Text style={[styles.total, { color: '#22c55e' }]}>
-                🌍 Total: {safeToFixed(item.total)} tCO₂e
-                </Text>
+              <Text style={[styles.total, { color: '#22c55e' }]}>
+                🌍 Total: {safeToFixed(item.total)} gha
+              </Text>
             </View>
-            ))
+          ))
         )}
+
         <View style={styles.deleteButton}>
-            <Button title="🗑️ Borrar historial" color="red" onPress={borrarHistorial} />
+          <Button
+            title="🗑️ Borrar historial"
+            color="red"
+            onPress={borrarHistorial}
+          />
         </View>
-        </ScrollView>
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+  },
+  scroll: {
     padding: 16,
-    flexGrow: 1,
+    paddingBottom: 24,
   },
   light: {
     backgroundColor: '#f8fafc',
@@ -104,7 +137,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 30,
-    position: 'relative',
   },
   title: {
     fontSize: 22,
@@ -117,15 +149,16 @@ const styles = StyleSheet.create({
     color: '#f8fafc',
   },
   deleteButton: {
-    marginTop: 16,
+    marginTop: 24,
   },
   emptyText: {
     textAlign: 'center',
     fontStyle: 'italic',
     marginTop: 32,
+    fontSize: 16,
   },
   card: {
-    marginTop: 12,
+    marginBottom: 16,
     padding: 16,
     borderRadius: 12,
     elevation: 3,
@@ -143,6 +176,7 @@ const styles = StyleSheet.create({
   cardDate: {
     fontWeight: 'bold',
     marginBottom: 8,
+    fontSize: 15,
   },
   item: {
     fontSize: 16,
