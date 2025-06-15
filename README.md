@@ -12,7 +12,7 @@ Abre tu terminal y ejecuta:
 
 ```bash
 git clone https://github.com/Nob0dyknows99/huella-ecologica.git
-cd huella-carbono
+cd huella-ecologica
 ```
 
 ---
